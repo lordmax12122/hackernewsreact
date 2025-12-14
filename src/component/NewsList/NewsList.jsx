@@ -1,60 +1,80 @@
 import { Component } from "react";
 
 class NewsList extends Component {
-    state = {
-        posts: [],
-        isLoading: false,
-        randomArticle: {
-            title: "",
-            author: "",
-            url: ""
-        }
+  state = {
+    randomArticle: null,
+    posts: [],
+    isLoading: false,
+  };
+
+  async componentDidMount() {
+    this.setState({ isLoading: true });
+
+    try {
+      const randomId = Math.floor(Math.random() * 1000);
+      const randomResponse = await fetch(
+        `https://hn.algolia.com/api/v1/items/${randomId}`
+      );
+      const randomData = await randomResponse.json();
+
+      const postsResponse = await fetch(
+        "https://hn.algolia.com/api/v1/search?tags=front_page"
+      );
+      const postsData = await postsResponse.json();
+
+      this.setState({
+        randomArticle: randomData,
+        posts: postsData.hits,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  }
+
+  render() {
+    const { randomArticle, posts, isLoading } = this.state;
+
+    if (isLoading) {
+      return <p>Завантаження...</p>;
     }
 
-    async componentDidMount() {
-        this.setState({ isLoading: true });
-        const randomId = Math.floor(Math.random() * 20) - 1
-        const rresponse = await fetch(
-            `http://hn.algolia.com/api/v1/items/${randomId}`
-        ).then(data => data.json())
-            .then((data) => {
-                // console.log(data.title)
-                this.setState({ randomArticle: data })
-                // console.log(this.state.randomArticle)
-            })
-        const  presponse = await fetch(
-            `https://hn.algolia.com/api/v1/search?tags=front_page`
-        ).then(data => data.json())
-        .then(data => {
-            console.log(data.hits)
-        })     
-    }
+    return (
+      <>
+        {randomArticle && (
+          <div>
+            <h2>Random Article</h2>
+            <h3>{randomArticle.title}</h3>
+            <p>Автор: {randomArticle.author}</p>
+            {randomArticle.url && (
+              <a href={randomArticle.url} target="_blank" rel="noreferrer">
+                перейти
+              </a>
+            )}
+          </div>
+        )}
+        <div>
+          <h1>Hacker News</h1>
 
-    render() {
-        // console.log(this.state.post)
-        // const { posts, randomArticle, isLoading } = this.state
-        // console.dir(randomArticle)
-        return (
-            <>
-                <div>
-                    <h2>Random Article</h2>
-                    <h3>{this.state.randomArticle.title}</h3>
-                    <p>Автор: {this.state.randomArticle.author}</p>
-                    <a href={this.state.randomArticle.url}>перейти</a>
-                </div>
-                <div>
-                    <h1>Hacker News</h1>
-                    <ul>
-                        <li>
-                            <h3>title</h3>
-                            <p>author</p>
-                            <a href=""></a>
-                        </li>
-                    </ul>
-                </div>
-            </>
-        )
-    }
+          <ul>
+            {posts.map((post) => (
+              <li key={post.objectID}>
+                <h3>
+                  <a
+                    href={post.url || "#"}
+                  >
+                    {post.title}
+                  </a>
+                </h3>
+                <p>Автор: {post.author}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </>
+    );
+  }
 }
 
-export default NewsList
+export default NewsList;
